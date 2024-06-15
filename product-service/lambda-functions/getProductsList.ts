@@ -1,7 +1,7 @@
-import { APIGatewayProxyHandler } from "aws-lambda";
+import { APIGatewayProxyHandler, APIGatewayProxyResult } from "aws-lambda";
 import { products } from "./products";
 
-export const handler: APIGatewayProxyHandler = async () => {
+export const handler: APIGatewayProxyHandler = async (): Promise<APIGatewayProxyResult> => {
   if (!products?.length) {
     return {
       statusCode: 404,

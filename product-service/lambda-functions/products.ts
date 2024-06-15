@@ -1,4 +1,6 @@
-export const products = [
+import { IProduct } from "./product.interface";
+
+export const products: Array<IProduct> = [
   {
     description: "Short Product Description1",
     id: '1',
