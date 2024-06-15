@@ -1,16 +1,27 @@
 import * as cdk from 'aws-cdk-lib';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 export class ProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    const getProductsList = new lambda.Function(this, 'getProductsListHandler', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      code: lambda.Code.fromAsset('lambda'),
+      handler: 'getProductsList.handler',
+      functionName: 'getProductsList'
+    });
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'ProductServiceQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
+    const api = new apigateway.RestApi(this, 'productServiceApi', {
+      restApiName: 'Product Service',
+      description: 'This service serves products.'
+    });
+
+    const getProductsListIntegration = new apigateway.LambdaIntegration(getProductsList);
+
+    const products = api.root.addResource('products');
+    products.addMethod('GET', getProductsListIntegration);
   }
 }
