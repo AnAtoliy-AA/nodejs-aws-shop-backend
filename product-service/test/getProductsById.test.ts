@@ -42,19 +42,19 @@ describe('getProductsById Handler', () => {
     expect(JSON.parse(result.body)).toEqual({ message: 'Product not found' });
   });
 
-  it('should return 404 if productId is missing', async () => {
+  it('should return 500 if productId is missing', async () => {
     const event: Partial<APIGatewayProxyEvent> = {};
     const context: Partial<Context> = {};
 
     const result = await getProductsByIdHandler(event as APIGatewayProxyEvent, context as Context, () => null) as APIGatewayProxyResult;
 
-    expect(result.statusCode).toBe(404);
+    expect(result.statusCode).toBe(500);
     expect(result.headers).toEqual({
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET",
       "Access-Control-Allow-Headers": "Content-Type",
       "Content-Type": "application/json",
     });
-    expect(JSON.parse(result.body)).toEqual({ message: 'Product not found' });
+    expect(JSON.parse(result.body)).toEqual({ message: 'productId is required' });
   });
 });
