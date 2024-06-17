@@ -1,0 +1,108 @@
+openapi: 3.0.1
+info:
+  title: Product Service API
+  description: API for managing products.
+  version: 1.0.0
+servers:
+  - url: https://57tj5heb4i.execute-api.eu-central-1.amazonaws.com/prod
+    description: Production server
+paths:
+  /products:
+    get:
+      summary: Get a list of products
+      operationId: getProductsList
+      responses:
+        '200':
+          description: A list of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '404':
+          description: No products found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /products/{productId}:
+    get:
+      summary: Get a product by ID
+      operationId: getProductById
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A single product
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Missing productId parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '1'
+        name:
+          type: string
+          example: 'Product 1'
+        price:
+          type: number
+          example: 100
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: 'Internal server error'
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '1'
+        name:
+          type: string
+          example: 'Product 1'
+        price:
+          type: number
+          example: 100
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: 'Internal server error'
