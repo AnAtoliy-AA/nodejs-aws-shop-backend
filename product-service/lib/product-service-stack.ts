@@ -67,6 +67,20 @@ export class ProductServiceStack extends cdk.Stack {
       }
     );
 
+    const createProduct = new lambda.Function(
+      this,
+      "createProductHandler",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        code: lambda.Code.fromAsset("lambda-functions"),
+        handler: "createProduct.handler",
+        functionName: "createProduct",
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+        },
+      }
+    );
+
     getProductsById.addToRolePolicy(dynamoPolicy);
 
     const api = new apigateway.RestApi(this, "productServiceApi", {
@@ -109,5 +123,9 @@ export class ProductServiceStack extends cdk.Stack {
 
     const fillProducts = api.root.addResource("fill-products");
     fillProducts.addMethod("GET", fillProductsListIntegration);
+
+    const createProductIntegration = new apigateway.LambdaIntegration(createProduct);
+
+    products.addMethod('POST', createProductIntegration);
   }
 }
