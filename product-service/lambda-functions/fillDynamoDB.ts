@@ -2,13 +2,12 @@ import * as AWS from "aws-sdk";
 import { v4 as uuidv4 } from "uuid";
 import { IProduct } from "./product.interface";
 import { APIGatewayProxyResult } from "aws-lambda";
-import {
-  PRODUCTS_TABLE_NAME,
-  STOCKS_TABLE_NAME,
-} from "../lib/product-service-stack";
 
 AWS.config.update({ region: "eu-central-1" });
 const dynamoDb = new AWS.DynamoDB.DocumentClient({ region: "eu-central-1" });
+
+const PRODUCTS_TABLE_NAME = process.env.PRODUCTS_TABLE_NAME || "";
+const STOCKS_TABLE_NAME = process.env.PRODUCTS_TABLE_NAME || "";
 
 const products: Array<IProduct> = Array(10)
   .fill(1)

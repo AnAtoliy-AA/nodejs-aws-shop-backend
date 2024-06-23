@@ -45,6 +45,9 @@ export class ProductServiceStack extends cdk.Stack {
         code: lambda.Code.fromAsset("lambda-functions"),
         handler: "getProductsList.handler",
         functionName: "getProductsList",
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+        },
       }
     );
 
@@ -58,6 +61,9 @@ export class ProductServiceStack extends cdk.Stack {
         code: lambda.Code.fromAsset("lambda-functions"),
         handler: "getProductsById.handler",
         functionName: "getProductsById",
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+        },
       }
     );
 
@@ -91,6 +97,10 @@ export class ProductServiceStack extends cdk.Stack {
       code: lambda.Code.fromAsset("lambda-functions"),
       handler: "fillDynamoDB.handler",
       functionName: "fillDynamoDB",
+      environment: {
+        PRODUCTS_TABLE_NAME: productsTable.tableName,
+        STOCKS_TABLE_NAME: stocksTable.tableName,
+      },
     });
 
     const fillProductsListIntegration = new apigateway.LambdaIntegration(
