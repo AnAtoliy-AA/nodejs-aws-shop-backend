@@ -5,6 +5,7 @@ import { DocumentClient } from "aws-sdk/clients/dynamodb";
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 const PRODUCTS_TABLE_NAME = process.env.PRODUCTS_TABLE_NAME || "";
+const STOCKS_TABLE_NAME = process.env.PRODUCTS_TABLE_NAME || "";
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   const productId = event.pathParameters?.productId;
@@ -52,6 +53,19 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       };
     }
 
+    const stockParams: DocumentClient.GetItemInput = {
+      TableName: STOCKS_TABLE_NAME,
+      Key: {
+        products_id: productId,
+      },
+    };
+
+    const stockResult = await dynamoDb.get(stockParams).promise();
+
+    console.log("Scan stock result:", stockResult);
+    
+    const finalProduct = stockResult.Item as IProduct | undefined;
+
     return {
       statusCode: 200,
       headers: {
@@ -60,7 +74,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(product),
+      body: JSON.stringify(finalProduct),
     };
   } catch (error: unknown) {
     console.error("Error getting product:", error);
