@@ -77,6 +77,7 @@ export class ProductServiceStack extends cdk.Stack {
         functionName: "createProduct",
         environment: {
           PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName
         },
       }
     );
