@@ -123,7 +123,7 @@ export class ProductServiceStack extends cdk.Stack {
     );
 
     const fillProducts = api.root.addResource("fill-products");
-    fillProducts.addMethod("GET", fillProductsListIntegration);
+    fillProducts.addMethod("POST", fillProductsListIntegration);
 
     const createProductIntegration = new apigateway.LambdaIntegration(createProduct);
 

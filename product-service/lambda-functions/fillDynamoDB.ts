@@ -7,10 +7,10 @@ AWS.config.update({ region: "eu-central-1" });
 const dynamoDb = new AWS.DynamoDB.DocumentClient({ region: "eu-central-1" });
 
 const PRODUCTS_TABLE_NAME = process.env.PRODUCTS_TABLE_NAME || "";
-const STOCKS_TABLE_NAME = process.env.PRODUCTS_TABLE_NAME || "";
+const STOCKS_TABLE_NAME = process.env.STOCKS_TABLE_NAME || "";
 
 const products: Array<IProduct> = Array(10)
-  .fill(1)
+  .fill(3)
   .map((_, ind) => {
     const productNumber = ind + 1;
 
@@ -28,7 +28,9 @@ const populateProducts = async () => {
       TableName: PRODUCTS_TABLE_NAME,
       Item: product,
     };
+
     await dynamoDb.put(params).promise();
+
     console.log(`Added ${product.title} to products table`);
   }
 };
@@ -36,14 +38,16 @@ const populateProducts = async () => {
 const populateStocks = async () => {
   for (const product of products) {
     const stockItem = {
-      product_id: product.id,
-      count: 50,
+      products_id: product.id,
+      count: 10,
     };
     const params = {
       TableName: STOCKS_TABLE_NAME,
       Item: stockItem,
     };
+
     await dynamoDb.put(params).promise();
+    
     console.log(`Added stock for ${product.title} to stocks table`);
   }
 };
@@ -61,7 +65,7 @@ export const handler = async (): Promise<APIGatewayProxyResult> => {
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ message: "Data population complete12345." }),
+      body: JSON.stringify({ message: "Data population complete." }),
     };
   } catch (error: unknown) {
     return {
