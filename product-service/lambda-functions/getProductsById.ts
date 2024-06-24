@@ -1,14 +1,14 @@
 import { APIGatewayProxyHandler } from "aws-lambda";
 import * as AWS from "aws-sdk";
-import { IProduct } from "./product.interface";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
-const PRODUCTS_TABLE_NAME = process.env.PRODUCTS_TABLE_NAME || "";
-const STOCKS_TABLE_NAME = process.env.PRODUCTS_TABLE_NAME || "";
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   const productId = event.pathParameters?.productId;
+  
+  const PRODUCTS_TABLE_NAME = process.env.PRODUCTS_TABLE_NAME || "";
+  const STOCKS_TABLE_NAME = process.env.STOCKS_TABLE_NAME || "";
 
   if (!productId) {
     return {
@@ -23,24 +23,31 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     };
   }
 
-  const params: DocumentClient.GetItemInput = {
-    TableName: PRODUCTS_TABLE_NAME,
-    Key: {
-      id: productId,
-    },
-  };
-
   try {
+    const productParams: DocumentClient.GetItemInput = {
+      TableName: PRODUCTS_TABLE_NAME,
+      Key: {
+        id: productId,
+      },
+    };
+  
+    const stockParams: DocumentClient.GetItemInput = {
+      TableName: STOCKS_TABLE_NAME,
+      Key: {
+        products_id: productId,
+      },
+    };
     
-    console.log(`Scanning table: ${PRODUCTS_TABLE_NAME}`);
+    console.log(`Scanning tables: ${PRODUCTS_TABLE_NAME}, ${STOCKS_TABLE_NAME}`);
 
-    const result = await dynamoDb.get(params).promise();
-
-    console.log("Scan result:", result);
+    const [productResult, stockResult] = await Promise.all([
+      dynamoDb.get(productParams).promise(),
+      dynamoDb.get(stockParams).promise()
+    ]);
     
-    const product = result.Item as IProduct | undefined;
+    console.log("Scan results:", productResult, stockResult);
 
-    if (!product) {
+    if (!productResult || !stockResult) {
       return {
         statusCode: 404,
         headers: {
@@ -53,18 +60,10 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       };
     }
 
-    const stockParams: DocumentClient.GetItemInput = {
-      TableName: STOCKS_TABLE_NAME,
-      Key: {
-        products_id: productId,
-      },
-    };
-
-    const stockResult = await dynamoDb.get(stockParams).promise();
-
-    console.log("Scan stock result:", stockResult);
-    
-    const finalProduct = stockResult.Item as IProduct | undefined;
+    const finalProduct = {
+      ...productResult?.Item,
+      count: stockResult?.Item?.count
+    }
 
     return {
       statusCode: 200,

@@ -5,8 +5,8 @@ import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
 
-export const PRODUCTS_TABLE_NAME = "products_table";
-export const STOCKS_TABLE_NAME = "stocks_table";
+export const PRODUCTS_TABLE_NAME = "products";
+export const STOCKS_TABLE_NAME = "stocks";
 
 export class ProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -15,7 +15,6 @@ export class ProductServiceStack extends cdk.Stack {
     const productsTable = new dynamodb.Table(this, "Products", {
       tableName: PRODUCTS_TABLE_NAME,
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-      sortKey: { name: "title", type: dynamodb.AttributeType.STRING },
     });
 
     const stocksTable = new dynamodb.Table(this, "StocksTable", {
@@ -63,6 +62,7 @@ export class ProductServiceStack extends cdk.Stack {
         functionName: "getProductsById",
         environment: {
           PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName
         },
       }
     );
