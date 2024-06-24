@@ -46,6 +46,14 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     await dynamoDb.put(productParams).promise();
     await dynamoDb.put(stockParams).promise();
 
+    const [productsResult, stocksResult] = await Promise.all([
+      dynamoDb.put(productParams).promise(),
+      dynamoDb.put(stockParams).promise(),
+    ]);
+
+    console.log('productsResult', productsResult);
+    console.log('stocksResult', stocksResult);
+
     return {
       statusCode: 201,
       headers: {
