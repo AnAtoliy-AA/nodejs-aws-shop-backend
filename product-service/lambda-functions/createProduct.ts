@@ -1,13 +1,14 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
 import * as AWS from 'aws-sdk';
+import { v4 as uuidv4 } from 'uuid'
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 const PRODUCTS_TABLE_NAME = process.env.PRODUCTS_TABLE_NAME || '';
 
 export const handler: APIGatewayProxyHandler = async (event) => {
-  const { id, title, description, price } = JSON.parse(event.body || '{}');
+  const { title, description, price } = JSON.parse(event.body || '{}');
 
-  if (!id || !title || !description || !price) {
+  if (!title || !description || !price) {
     return {
       statusCode: 400,
       headers: {
@@ -23,7 +24,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
   const params: AWS.DynamoDB.DocumentClient.PutItemInput = {
     TableName: PRODUCTS_TABLE_NAME,
     Item: {
-      id,
+      id: uuidv4(),
       title,
       description,
       price,
