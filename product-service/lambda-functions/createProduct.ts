@@ -12,7 +12,7 @@ const validateProduct = ({
   price,
   count,
 }: Omit<IProduct, "id" | "description"> & { count: number }): string | null => {
-  if (typeof price !== "number" || typeof count !== "number") {
+  if (typeof price !== "number" || Number.isInteger(count)) {
     return "Incorrect field types";
   }
 
@@ -26,7 +26,7 @@ const validateProduct = ({
 export const handler: APIGatewayProxyHandler = async (event) => {
   const { title, description, price, count } = JSON.parse(event.body || "{}");
 
-  const validationMessage = validateProduct({ title, price, count })
+  const validationMessage = validateProduct({ title, price, count });
 
   if (validationMessage) {
     return {
@@ -48,7 +48,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     Item: {
       id: productId,
       title,
-      description: description || '',
+      description: description || "",
       price,
     },
   };
@@ -70,8 +70,8 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       dynamoDb.put(stockParams).promise(),
     ]);
 
-    console.log('productsResult', productsResult);
-    console.log('stocksResult', stocksResult);
+    console.log("productsResult", productsResult);
+    console.log("stocksResult", stocksResult);
 
     return {
       statusCode: 201,
