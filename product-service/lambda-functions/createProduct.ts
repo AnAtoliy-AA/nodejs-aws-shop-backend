@@ -12,8 +12,13 @@ const validateProduct = ({
   price,
   count,
 }: Omit<IProduct, "id" | "description"> & { count: number }): string | null => {
-  if (typeof price !== "number" || Number.isInteger(count)) {
-    return "Incorrect field types";
+  if (
+    typeof price !== "number" ||
+    price < 0 ||
+    Number.isInteger(count) ||
+    count < 0
+  ) {
+    return "Incorrect fields values";
   }
 
   if (!title || !price || !count) {
