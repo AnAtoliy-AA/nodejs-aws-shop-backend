@@ -32,6 +32,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+    post:
+      summary: Create a new product
+      operationId: createProduct
+      requestBody:
+        description: Product object to be created
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewProduct'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          description: Invalid input, object invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /products/{productId}:
     get:
       summary: Get a product by ID
@@ -81,25 +110,31 @@ components:
         price:
           type: number
           example: 100
-    Error:
+    NewProduct:
+      type: object
+      required:
+        - title
+        - price
+        - count
+      properties:
+        title:
+          type: string
+          example: 'Product 1'
+        description:
+          type: string
+          example: 'Description of Product 1'
+        price:
+          type: number
+          example: 100
+        count:
+          type: integer
+          example: 10
+    Success:
       type: object
       properties:
         message:
           type: string
-          example: 'Internal server error'
-  schemas:
-    Product:
-      type: object
-      properties:
-        id:
-          type: string
-          example: '1'
-        name:
-          type: string
-          example: 'Product 1'
-        price:
-          type: number
-          example: 100
+          example: 'Product created successfully'
     Error:
       type: object
       properties:
