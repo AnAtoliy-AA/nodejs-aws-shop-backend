@@ -1,15 +1,34 @@
 import { APIGatewayProxyHandler } from "aws-lambda";
 import * as AWS from "aws-sdk";
 import { v4 as uuidv4 } from "uuid";
+import { IProduct } from "./product.interface";
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 const PRODUCTS_TABLE_NAME = process.env.PRODUCTS_TABLE_NAME || "";
 const STOCKS_TABLE_NAME = process.env.STOCKS_TABLE_NAME || "";
 
+const validateProduct = ({
+  title,
+  price,
+  count,
+}: Omit<IProduct, "id" | "description"> & { count: number }): string | null => {
+  if (typeof price !== "number" || typeof count !== "number") {
+    return "Incorrect field types";
+  }
+
+  if (!title || !price || !count) {
+    return "Missing required fields";
+  }
+
+  return null;
+};
+
 export const handler: APIGatewayProxyHandler = async (event) => {
   const { title, description, price, count } = JSON.parse(event.body || "{}");
 
-  if (!title || !price) {
+  const validationMessage = validateProduct({ title, price, count })
+
+  if (validationMessage) {
     return {
       statusCode: 400,
       headers: {
@@ -18,7 +37,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ message: "Missing required fields" }),
+      body: JSON.stringify({ message: validationMessage }),
     };
   }
 
