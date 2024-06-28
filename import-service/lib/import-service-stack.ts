@@ -1,21 +1,28 @@
-import * as cdk from '@aws-cdk/core';
-import * as s3 from '@aws-cdk/aws-s3';
-import * as lambda from '@aws-cdk/aws-lambda';
-import * as apigateway from '@aws-cdk/aws-apigateway';
+import * as cdk from "aws-cdk-lib";
+import {
+  aws_cloudfront as cloudfront,
+  aws_s3 as s3,
+  aws_s3_deployment as s3deploy,
+  aws_iam as iam,
+} from "aws-cdk-lib";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import { Construct } from "constructs";
 
 export class ImportServiceStack extends cdk.Stack {
-  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     const importBucket = new s3.Bucket(this, 'ImportBucket', {
+      bucketName: 'unique-import-service-bucket-name',
       versioned: true,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
     });
 
     const importLambda = new lambda.Function(this, 'ImportFunction', {
-      runtime: lambda.Runtime.NODEJS_16_X,
-      code: lambda.Code.fromAsset('lambda'),
+      runtime: lambda.Runtime.NODEJS_20_X,
+      code: lambda.Code.fromAsset('lambda-functions'),
       handler: 'index.handler',
       environment: {
         BUCKET_NAME: importBucket.bucketName,
