@@ -4,6 +4,51 @@ import { S3Event, S3Handler } from "aws-lambda";
 
 const s3 = new AWS.S3();
 
+const tryToMoveFile = async ({
+  bucket,
+  key,
+  resolve,
+  reject,
+}: {
+  bucket: string;
+  key: string;
+  resolve: VoidFunction;
+  reject: (reason?: unknown) => void;
+}) => {
+  try {
+    const copyParams = {
+      Bucket: bucket,
+      CopySource: `${bucket}/${key}`,
+      Key: key.replace("uploaded", "parsed"),
+    };
+
+    console.log("Copying file:", JSON.stringify(copyParams, null, 2));
+
+    await s3.copyObject(copyParams).promise();
+
+    console.log("File copied successfully");
+
+    const deleteParams = {
+      Bucket: bucket,
+      Key: key,
+    };
+
+    console.log(
+      "Deleting original file:",
+      JSON.stringify(deleteParams, null, 2)
+    );
+
+    await s3.deleteObject(deleteParams).promise();
+
+    console.log("Original file deleted successfully");
+
+    resolve();
+  } catch (error) {
+    console.error("Error moving file:", error);
+    reject(error);
+  }
+};
+
 const processRecord = (bucket: string, key: string) => {
   return new Promise<void>((resolve, reject) => {
     const params = {
@@ -22,7 +67,8 @@ const processRecord = (bucket: string, key: string) => {
       })
       .on("end", () => {
         console.log("CSV file successfully processed");
-        resolve();
+
+        tryToMoveFile({ bucket, key, resolve, reject });
       })
       .on("error", (error) => {
         console.error("Error processing CSV file:", error);
