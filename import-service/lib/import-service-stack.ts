@@ -24,7 +24,7 @@ export class ImportServiceStack extends cdk.Stack {
     const uploadedFolderDeployment = new s3deploy.BucketDeployment(this, 'DeployUploadedFolder', {
       sources: [s3deploy.Source.asset(path.join(__dirname, 'empty-folder'))], // Path to an empty folder on local machine
       destinationBucket: importBucket,
-      destinationKeyPrefix: 'uploaded/', // The "uploaded" folder in the bucket
+      destinationKeyPrefix: 'uploaded', // The "uploaded" folder in the bucket
     });
 
     const importLambda = new lambda.Function(this, 'ImportFunction', {
@@ -36,7 +36,20 @@ export class ImportServiceStack extends cdk.Stack {
       },
     });
 
+    const importProductsFileFunction = new lambda.Function(this, 'ImportProductsFileFunction', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'importProductsFile.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambda-functions')),
+      environment: {
+        BUCKET_NAME: importBucket.bucketName,
+      },
+    });
+
     importBucket.grantReadWrite(importLambda);
+
+    importBucket.grantReadWrite(importProductsFileFunction);
+
+
 
     const api = new apigateway.RestApi(this, 'ImportApi', {
       restApiName: 'Import Service',
@@ -46,5 +59,21 @@ export class ImportServiceStack extends cdk.Stack {
     const getImportsIntegration = new apigateway.LambdaIntegration(importLambda);
 
     api.root.addMethod('GET', getImportsIntegration);
+
+    const importIntegration = new apigateway.LambdaIntegration(importProductsFileFunction, {
+      requestTemplates: { 'application/json': '{ "statusCode": "200" }' },
+    });
+
+    api.root
+    .resourceForPath('/import')
+    .addMethod('GET', importIntegration, {
+      requestParameters: {
+        'method.request.querystring.name': true,
+      },
+    });
+
+  new cdk.CfnOutput(this, 'API URL', {
+    value: api.url ?? 'Something went wrong with the deploy',
+  });
   }
 }

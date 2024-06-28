@@ -1,0 +1,13 @@
+description,price,title,count
+aaaa,4,MyNewProduct 1,10
+any description,10,No Product,0
+any description,10,Extended Product,100
+,10,Extended Product,100
+any description,9,Fragmented Product,15
+any description,0.9,Fragmented Product,
+description,25,title,10
+any description,10,Valid Product,1
+any description,9,Fragmented Product,
+aaaa,4,MyNewProduct 25,10
+,12,White Roses,78
+description,25,some title,10
