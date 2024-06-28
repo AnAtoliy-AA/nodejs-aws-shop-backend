@@ -8,6 +8,7 @@ import {
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
+import * as path from 'path';
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -18,6 +19,12 @@ export class ImportServiceStack extends cdk.Stack {
       versioned: true,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
+    });
+
+    const uploadedFolderDeployment = new s3deploy.BucketDeployment(this, 'DeployUploadedFolder', {
+      sources: [s3deploy.Source.asset(path.join(__dirname, 'empty-folder'))], // Path to an empty folder on local machine
+      destinationBucket: importBucket,
+      destinationKeyPrefix: 'uploaded/', // The "uploaded" folder in the bucket
     });
 
     const importLambda = new lambda.Function(this, 'ImportFunction', {
