@@ -15,7 +15,7 @@ const validateProduct = ({
   if (
     typeof price !== "number" ||
     price < 0 ||
-    Number.isInteger(count) ||
+    !Number.isInteger(count) ||
     count < 0
   ) {
     return "Incorrect fields values";
