@@ -1,0 +1,15 @@
+{
+  "name": "lambda-functions",
+  "version": "1.0.0",
+  "main": "fillDynamoDB.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "types": "./fillDynamoDB.d.ts",
+  "description": "",
+  "dependencies": {
+    "aws-sdk": "^2.1646.0"
+  }
+}
