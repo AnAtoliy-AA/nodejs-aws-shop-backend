@@ -4,6 +4,8 @@ import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as sqs from "aws-cdk-lib/aws-sqs";
+import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 export const PRODUCTS_TABLE_NAME = "products";
 export const STOCKS_TABLE_NAME = "stocks";
@@ -46,7 +48,7 @@ export class ProductServiceStack extends cdk.Stack {
         functionName: "getProductsList",
         environment: {
           PRODUCTS_TABLE_NAME: productsTable.tableName,
-          STOCKS_TABLE_NAME: stocksTable.tableName
+          STOCKS_TABLE_NAME: stocksTable.tableName,
         },
       }
     );
@@ -63,25 +65,21 @@ export class ProductServiceStack extends cdk.Stack {
         functionName: "getProductsById",
         environment: {
           PRODUCTS_TABLE_NAME: productsTable.tableName,
-          STOCKS_TABLE_NAME: stocksTable.tableName
+          STOCKS_TABLE_NAME: stocksTable.tableName,
         },
       }
     );
 
-    const createProduct = new lambda.Function(
-      this,
-      "createProductHandler",
-      {
-        runtime: lambda.Runtime.NODEJS_20_X,
-        code: lambda.Code.fromAsset("lambda-functions"),
-        handler: "createProduct.handler",
-        functionName: "createProduct",
-        environment: {
-          PRODUCTS_TABLE_NAME: productsTable.tableName,
-          STOCKS_TABLE_NAME: stocksTable.tableName
-        },
-      }
-    );
+    const createProduct = new lambda.Function(this, "createProductHandler", {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      code: lambda.Code.fromAsset("lambda-functions"),
+      handler: "createProduct.handler",
+      functionName: "createProduct",
+      environment: {
+        PRODUCTS_TABLE_NAME: productsTable.tableName,
+        STOCKS_TABLE_NAME: stocksTable.tableName,
+      },
+    });
 
     getProductsById.addToRolePolicy(dynamoPolicy);
 
@@ -126,8 +124,36 @@ export class ProductServiceStack extends cdk.Stack {
     const fillProducts = api.root.addResource("fill-products");
     fillProducts.addMethod("POST", fillProductsListIntegration);
 
-    const createProductIntegration = new apigateway.LambdaIntegration(createProduct);
+    const createProductIntegration = new apigateway.LambdaIntegration(
+      createProduct
+    );
 
-    products.addMethod('POST', createProductIntegration);
+    products.addMethod("POST", createProductIntegration);
+
+    const queue = new sqs.Queue(this, "CatalogItemsQueue", {
+      queueName: "catalogItemsQueue",
+    });
+
+    const catalogBatchProcess = new lambda.Function(
+      this,
+      "catalogBatchProcess",
+      {
+        functionName: "catalogBatchProcess",
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "index.handler",
+        code: lambda.Code.fromAsset("lambda-functions"),
+        environment: {
+          PRODUCTS_TABLE_NAME: productsTable.tableName,
+        },
+      }
+    );
+
+    productsTable.grantWriteData(catalogBatchProcess);
+
+    catalogBatchProcess.addEventSource(
+      new SqsEventSource(queue, {
+        batchSize: 5,
+      })
+    );
   }
 }
