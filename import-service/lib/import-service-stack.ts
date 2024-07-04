@@ -4,6 +4,7 @@ import {
   aws_s3 as s3,
   aws_s3_deployment as s3deploy,
   aws_iam as iam,
+  aws_sqs as sqs,
 } from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
@@ -30,6 +31,13 @@ export class ImportServiceStack extends cdk.Stack {
         destinationBucket: importBucket,
         destinationKeyPrefix: "uploaded", // The "uploaded" folder in the bucket
       }
+    );
+
+    const catalogItemsQueueArn = cdk.Fn.importValue("CatalogItemsQueueArn");
+    const catalogItemsQueue = sqs.Queue.fromQueueArn(
+      this,
+      "CatalogItemsQueue",
+      catalogItemsQueueArn
     );
 
     const importLambda = new lambda.Function(this, "ImportFunction", {
@@ -62,14 +70,15 @@ export class ImportServiceStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, "../lambda-functions")),
       environment: {
         BUCKET_NAME: importBucket.bucketName,
+        SQS_QUEUE_URL: catalogItemsQueue?.queueUrl,
       },
     });
 
     importBucket.grantReadWrite(importLambda);
-
     importBucket.grantReadWrite(importProductsFileFunction);
-
     importBucket.grantReadWrite(importFileParser);
+
+    catalogItemsQueue.grantSendMessages(importFileParser);
 
     const api = new apigateway.RestApi(this, "ImportApi", {
       restApiName: "Import Service",
@@ -79,7 +88,6 @@ export class ImportServiceStack extends cdk.Stack {
     const getImportsIntegration = new apigateway.LambdaIntegration(
       importLambda
     );
-
     api.root.addMethod("GET", getImportsIntegration);
 
     const importIntegration = new apigateway.LambdaIntegration(

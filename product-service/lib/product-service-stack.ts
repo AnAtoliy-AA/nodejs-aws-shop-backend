@@ -11,6 +11,7 @@ export const PRODUCTS_TABLE_NAME = "products";
 export const STOCKS_TABLE_NAME = "stocks";
 
 export class ProductServiceStack extends cdk.Stack {
+  public readonly catalogItemsQueue: sqs.Queue;
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -130,7 +131,7 @@ export class ProductServiceStack extends cdk.Stack {
 
     products.addMethod("POST", createProductIntegration);
 
-    const queue = new sqs.Queue(this, "CatalogItemsQueue", {
+    this.catalogItemsQueue = new sqs.Queue(this, "CatalogItemsQueue", {
       queueName: "catalogItemsQueue",
     });
 
@@ -140,20 +141,32 @@ export class ProductServiceStack extends cdk.Stack {
       {
         functionName: "catalogBatchProcess",
         runtime: lambda.Runtime.NODEJS_20_X,
-        handler: "index.handler",
+        handler: "catalogBatchProcess.handler",
         code: lambda.Code.fromAsset("lambda-functions"),
         environment: {
           PRODUCTS_TABLE_NAME: productsTable.tableName,
+          STOCKS_TABLE_NAME: stocksTable.tableName,
         },
       }
     );
 
     productsTable.grantWriteData(catalogBatchProcess);
+    stocksTable.grantWriteData(catalogBatchProcess);
 
     catalogBatchProcess.addEventSource(
-      new SqsEventSource(queue, {
+      new SqsEventSource(this.catalogItemsQueue, {
         batchSize: 5,
       })
     );
+
+    new cdk.CfnOutput(this, "CatalogItemsQueueArn", {
+      value: this.catalogItemsQueue.queueArn,
+      exportName: "CatalogItemsQueueArn",
+    });
+
+    new cdk.CfnOutput(this, "CatalogItemsQueueUrl", {
+      value: this.catalogItemsQueue.queueUrl,
+      exportName: "CatalogItemsQueueUrl",
+    });
   }
 }

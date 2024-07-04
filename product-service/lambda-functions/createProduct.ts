@@ -7,21 +7,21 @@ const dynamoDb = new AWS.DynamoDB.DocumentClient();
 const PRODUCTS_TABLE_NAME = process.env.PRODUCTS_TABLE_NAME || "";
 const STOCKS_TABLE_NAME = process.env.STOCKS_TABLE_NAME || "";
 
-const validateProduct = ({
+export const validateProduct = ({
   title,
   price,
   count,
 }: Omit<IProduct, "id" | "description"> & { count: number }): string | null => {
   if (
-    typeof price !== "number" ||
-    price < 0 ||
-    !Number.isInteger(count) ||
-    count < 0
+    Number.isNaN(+price) ||
+    +price < 0 ||
+    !Number.isInteger(+count) ||
+    +count < 0
   ) {
     return "Incorrect fields values";
   }
 
-  if (!title || !price || !count) {
+  if (!title || !price) {
     return "Missing required fields";
   }
 
