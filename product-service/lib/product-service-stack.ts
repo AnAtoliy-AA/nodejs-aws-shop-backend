@@ -6,12 +6,15 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as sns_subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 
 export const PRODUCTS_TABLE_NAME = "products";
 export const STOCKS_TABLE_NAME = "stocks";
 
 export class ProductServiceStack extends cdk.Stack {
   public readonly catalogItemsQueue: sqs.Queue;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -168,5 +171,39 @@ export class ProductServiceStack extends cdk.Stack {
       value: this.catalogItemsQueue.queueUrl,
       exportName: "CatalogItemsQueueUrl",
     });
+
+    // SNS topic for product creation
+    const createProductTopic = new sns.Topic(this, 'CreateProductTopic', {
+      displayName: 'Create Product Topic',
+    });
+
+    // Define filter policies
+    const filterPolicyForExpensiveProducts = {
+      price: sns.SubscriptionFilter.numericFilter({ greaterThanOrEqualTo: 100 }),
+    };
+
+    const filterPolicyForCheapProducts = {
+      price: sns.SubscriptionFilter.numericFilter({ lessThan: 100 }),
+    };
+
+    // Email subscription for expensive products
+    createProductTopic.addSubscription(
+      new sns_subscriptions.EmailSubscription('expensive@example.com', {
+        filterPolicy: filterPolicyForExpensiveProducts,
+      })
+    );
+
+    // Email subscription for cheap products
+    createProductTopic.addSubscription(
+      new sns_subscriptions.EmailSubscription('cheap@example.com', {
+        filterPolicy: filterPolicyForCheapProducts,
+      })
+    );
+
+    // Grant publish permissions to the createProduct Lambda function
+    createProduct.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['sns:Publish'],
+      resources: [createProductTopic.topicArn],
+    }));
   }
 }
