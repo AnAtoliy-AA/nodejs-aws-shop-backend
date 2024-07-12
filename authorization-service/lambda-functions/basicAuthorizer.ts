@@ -1,9 +1,4 @@
 import { APIGatewayProxyHandler } from "aws-lambda";
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-
-
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   const authHeader = event.headers['Authorization'] || event.headers['authorization'];
@@ -19,10 +14,15 @@ export const handler: APIGatewayProxyHandler = async (event) => {
   const [login, password] = Buffer.from(token, 'base64').toString('utf-8').split(':');
 
   const envCredentials = process.env.USER_CREDENTIALS?.split(',') || [];
+  console.log('envCredentials',  process.env.USER_CREDENTIALS);
+  console.log('envCredentials', envCredentials);
+
   const validCredentials = envCredentials.some(cred => {
     const [envLogin, envPassword] = cred.split('=');
     return envLogin === login && envPassword === password;
   });
+
+  console.log('validCredentials', validCredentials);
 
   if (validCredentials) {
     return {
