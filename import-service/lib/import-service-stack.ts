@@ -80,6 +80,32 @@ export class ImportServiceStack extends cdk.Stack {
 
     catalogItemsQueue.grantSendMessages(importFileParser);
 
+    const basicAuthorizer = new lambda.Function(
+      this,
+      "BasicAuthorizerFunctionImport",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        code: lambda.Code.fromAsset(
+          path.join(__dirname, "../../authorization-service/lambda-functions")
+        ),
+        handler: "basicAuthorizer.handler",
+        environment: {
+          USER_CREDENTIALS:
+            process.env.USER_CREDENTIALS ||
+            "your_github_account_login=TEST_PASSWORD",
+        },
+      }
+    );
+
+    const authorizer = new apigateway.RequestAuthorizer(
+      this,
+      "RequestAuthorizer",
+      {
+        handler: basicAuthorizer,
+        identitySources: [apigateway.IdentitySource.header("Authorization")],
+      }
+    );
+
     const api = new apigateway.RestApi(this, "ImportApi", {
       restApiName: "Import Service",
       description: "This service handles import operations.",
@@ -101,6 +127,12 @@ export class ImportServiceStack extends cdk.Stack {
       requestParameters: {
         "method.request.querystring.name": true,
       },
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+      authorizer: authorizer,
+    });
+
+    new cdk.CfnOutput(this, "ImportApiEndpoint", {
+      value: api.url,
     });
 
     new cdk.CfnOutput(this, "API URL", {

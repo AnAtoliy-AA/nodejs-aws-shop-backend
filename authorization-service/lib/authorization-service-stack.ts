@@ -8,8 +8,6 @@ export class AuthorizationServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    console.log('USER_CREDENTIALS:', process.env.USER_CREDENTIALS);
-
     const authLambda = new lambda.Function(this, "BasicAuthorizerFunction", {
       runtime: lambda.Runtime.NODEJS_20_X,
       code: lambda.Code.fromAsset(path.join(__dirname, "../lambda-functions")),
@@ -19,6 +17,7 @@ export class AuthorizationServiceStack extends cdk.Stack {
           process.env.USER_CREDENTIALS ||
           "your_github_account_login=TEST_PASSWORD",
       },
+      functionName: "MyBasicAuthorizerFunction",
     });
 
     const api = new apigateway.RestApi(this, "AuthApi", {
