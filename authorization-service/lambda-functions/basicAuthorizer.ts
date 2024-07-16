@@ -13,7 +13,7 @@ export const handler = async (
   console.log("Auth header:", authHeader);
 
   if (!authHeader) {
-    generatePolicy(authHeader, "Deny", event?.methodArn);
+    generatePolicy(authHeader, "Deny", event?.methodArn, 401);
   }
 
   const token = authHeader.split(" ")[1];
@@ -36,13 +36,14 @@ export const handler = async (
 
   const effect = validCredentials ? "Allow" : "Deny";
 
-  return generatePolicy(authHeader, effect, event?.methodArn);
+  return generatePolicy(authHeader, effect, event?.methodArn, 403);
 };
 
 const generatePolicy = (
   principalId: string,
   effect = "Deny",
-  resource: string
+  resource: string,
+  statusCode: number,
 ) => {
   const authResponse = {
     principalId,
@@ -55,6 +56,9 @@ const generatePolicy = (
           Resource: resource,
         },
       ],
+    },
+    context: {
+      statusCode,
     },
   };
   return authResponse;
