@@ -1,5 +1,7 @@
 import { APIGatewayEventDefaultAuthorizerContext } from "aws-lambda";
 
+const NUMBER_OF_WORDS_IN_TOKEN = 2;
+
 export const handler = async (
   event: APIGatewayEventDefaultAuthorizerContext
 ) => {
@@ -12,7 +14,7 @@ export const handler = async (
 
   console.log("Auth header:", authHeader);
 
-  if (!authHeader) {
+  if (!authHeader || !authHeader?.includes('Basic') || authHeader?.split(" ")?.length < NUMBER_OF_WORDS_IN_TOKEN) {
     generatePolicy(authHeader, "Deny", event?.methodArn, 401);
   }
 
