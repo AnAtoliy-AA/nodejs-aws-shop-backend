@@ -1,8 +1,4 @@
 import { APIGatewayEventDefaultAuthorizerContext } from "aws-lambda";
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 export const handler = async (
   event: APIGatewayEventDefaultAuthorizerContext
@@ -18,10 +14,6 @@ export const handler = async (
 
   if (!authHeader) {
     generatePolicy(authHeader, "Deny", event?.methodArn);
-    // return {
-    //   statusCode: 401,
-    //   body: JSON.stringify({ message: "Authorization header is not provided" }),
-    // };
   }
 
   const token = authHeader.split(" ")[1];
@@ -45,18 +37,6 @@ export const handler = async (
   const effect = validCredentials ? "Allow" : "Deny";
 
   return generatePolicy(authHeader, effect, event?.methodArn);
-
-  // if (validCredentials) {
-  //   return {
-  //     statusCode: 200,
-  //     body: JSON.stringify({ message: "Authorization successful" }),
-  //   };
-  // } else {
-  //   return {
-  //     statusCode: 403,
-  //     body: JSON.stringify({ message: "Access denied" }),
-  //   };
-  // }
 };
 
 const generatePolicy = (

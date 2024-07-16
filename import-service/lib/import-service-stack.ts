@@ -1,6 +1,5 @@
 import * as cdk from "aws-cdk-lib";
 import {
-  aws_cloudfront as cloudfront,
   aws_s3 as s3,
   aws_s3_deployment as s3deploy,
   aws_iam as iam,
@@ -11,6 +10,9 @@ import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import * as path from "path";
 import * as s3n from "aws-cdk-lib/aws-s3-notifications";
+import * as dotenv from "dotenv";
+
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -21,7 +23,20 @@ export class ImportServiceStack extends cdk.Stack {
       versioned: true,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
+      cors: [
+        {
+          allowedHeaders: ["*"],
+          allowedMethods: [
+            s3.HttpMethods.GET,
+            s3.HttpMethods.PUT,
+            s3.HttpMethods.POST,
+          ],
+          allowedOrigins: [`${process?.env?.FE_CLOUD_FRONT}`],
+        },
+      ],
     });
+
+    console.log("CloudFront:", process?.env?.FE_CLOUD_FRONT);
 
     const uploadedFolderDeployment = new s3deploy.BucketDeployment(
       this,
@@ -39,15 +54,6 @@ export class ImportServiceStack extends cdk.Stack {
       "CatalogItemsQueue",
       catalogItemsQueueArn
     );
-
-    const importLambda = new lambda.Function(this, "ImportFunction", {
-      runtime: lambda.Runtime.NODEJS_20_X,
-      code: lambda.Code.fromAsset("lambda-functions"),
-      handler: "index.handler",
-      environment: {
-        BUCKET_NAME: importBucket.bucketName,
-      },
-    });
 
     const importProductsFileFunction = new lambda.Function(
       this,
@@ -74,47 +80,55 @@ export class ImportServiceStack extends cdk.Stack {
       },
     });
 
-    importBucket.grantReadWrite(importLambda);
     importBucket.grantReadWrite(importProductsFileFunction);
     importBucket.grantReadWrite(importFileParser);
 
     catalogItemsQueue.grantSendMessages(importFileParser);
 
-    const basicAuthorizer = new lambda.Function(
-      this,
-      "BasicAuthorizerFunctionImport",
-      {
-        runtime: lambda.Runtime.NODEJS_20_X,
-        code: lambda.Code.fromAsset(
-          path.join(__dirname, "../../authorization-service/lambda-functions")
-        ),
-        handler: "basicAuthorizer.handler",
-        environment: {
-          USER_CREDENTIALS:
-            process.env.USER_CREDENTIALS ||
-            "your_github_account_login=TEST_PASSWORD",
-        },
-      }
+    const myBasicAuthorizerArn = cdk.Fn.importValue(
+      "MyBasicAuthorizerFunctionArn"
     );
 
-    const authorizer = new apigateway.RequestAuthorizer(
+    console.log("myBasicAuthorizerArn", myBasicAuthorizerArn);
+
+    const basicAuthorizer = lambda.Function.fromFunctionArn(
+      this,
+      "basicAuthorizerFromFunctionArn",
+      myBasicAuthorizerArn
+    );
+
+    const authorizer = new apigateway.TokenAuthorizer(
       this,
       "RequestAuthorizer",
       {
         handler: basicAuthorizer,
-        identitySources: [apigateway.IdentitySource.header("Authorization")],
+        identitySource: apigateway.IdentitySource.header("Authorization"),
       }
     );
+
+    basicAuthorizer.addPermission("APIGatewayInvoke", {
+      principal: new iam.ServicePrincipal("apigateway.amazonaws.com"),
+      sourceArn: `arn:aws:execute-api:${this.region}:${this.account}:*/authorizers/*`,
+    });
 
     const api = new apigateway.RestApi(this, "ImportApi", {
       restApiName: "Import Service",
       description: "This service handles import operations.",
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+      },
     });
 
-    const getImportsIntegration = new apigateway.LambdaIntegration(
-      importLambda
-    );
-    api.root.addMethod("GET", getImportsIntegration);
+    const resp = {
+      type: apigateway.ResponseType.DEFAULT_4XX,
+      responseHeaders: {
+        "Access-Control-Allow-Origin": "'*'",
+      },
+    };
+
+    api.addGatewayResponse("UnauthorizedResponse", resp);
+    api.addGatewayResponse("ForbiddenResponse", resp);
 
     const importIntegration = new apigateway.LambdaIntegration(
       importProductsFileFunction,
@@ -127,6 +141,30 @@ export class ImportServiceStack extends cdk.Stack {
       requestParameters: {
         "method.request.querystring.name": true,
       },
+
+      methodResponses: [
+        {
+          statusCode: "200",
+          responseParameters: {
+            "method.response.header.Access-Control-Allow-Origin": true,
+            "method.response.header.Access-Control-Allow-Credentials": true,
+          },
+        },
+        {
+          statusCode: "401",
+          responseParameters: {
+            "method.response.header.Access-Control-Allow-Origin": true,
+            "method.response.header.Access-Control-Allow-Credentials": true,
+          },
+        },
+        {
+          statusCode: "403",
+          responseParameters: {
+            "method.response.header.Access-Control-Allow-Origin": true,
+            "method.response.header.Access-Control-Allow-Credentials": true,
+          },
+        },
+      ],
       authorizationType: apigateway.AuthorizationType.CUSTOM,
       authorizer: authorizer,
     });
